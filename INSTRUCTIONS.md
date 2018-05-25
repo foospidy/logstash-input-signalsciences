@@ -10,7 +10,7 @@ There are two methods of installing this plugin.
 
 `logstash-plugin install logstash-input-signalciences`
 
-2. You can build and install the gem file locally by using the `Makefile` locally on your system. However, you will need to ensure Ruby requirements for building gem files are met. Use the following commands:
+2. You can build and install the gem file locally by using the `Makefile` on your system. However, you will need to ensure Ruby requirements for building gem files are met. Use the following commands:
 
 `make build`
 
@@ -18,6 +18,6 @@ This command will build and install the gem file. You will need to ensure the `l
 
 ## Configuration
 
-Refer to the example configuration file [here](logstash-input-signalsciences.conf. This file assumes you will import the data into Elasticsearch using the logstash-output-elasticsearch plugin.
+Refer to the example configuration file [here](logstash-input-signalsciences.conf). This file assumes you will import the data into Elasticsearch using the logstash-output-elasticsearch plugin.
 
 ## Quick Start - Running the ELK stack locally
