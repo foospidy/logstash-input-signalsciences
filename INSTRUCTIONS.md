@@ -8,7 +8,7 @@ There are two methods of installing this plugin.
 
 1. The plugin is published on rubygems.org (https://rubygems.org/gems/logstash-input-signalsciences) so it can be easily installed via Logstash by using the following command:
 
-`logstash-plugin install logstash-input-signalciences`
+`logstash-plugin install logstash-input-signalsciences`
 
 2. You can build and install the gem file locally by using the `Makefile` on your system. However, you will need to ensure Ruby requirements for building gem files are met. Use the following commands:
 
