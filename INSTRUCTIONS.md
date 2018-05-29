@@ -67,4 +67,4 @@ If you want to create a new plugin, see:
 
 1. Plugin generator https://www.elastic.co/guide/en/logstash/current/plugins-inputs-generator.html, usage: https://github.com/elastic/logstash/blob/master/docs/static/plugin-generator.asciidoc
 
-2. Submitting your plugin to [RubyGems.org and the Logstash-plugin repository] (https://www.elastic.co/guide/en/logstash/current/submitting-plugin.html).
+2. Submitting your plugin to [RubyGems.org and the Logstash-plugin repository](https://www.elastic.co/guide/en/logstash/current/submitting-plugin.html).
