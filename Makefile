@@ -1,6 +1,6 @@
 build:
 	gem build logstash-input-signalsciences \
-	&& logstash-plugin install logstash-input-signalsciences-0.1.1.gem
+	&& logstash-plugin install logstash-input-signalsciences-0.2.0.gem
 
 run:
 	logstash -f logstash-input-signalsciences.conf
