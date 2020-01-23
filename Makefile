@@ -1,6 +1,8 @@
+VERSION?=0.0.0
+
 build:
 	gem build logstash-input-signalsciences \
-	&& logstash-plugin install logstash-input-signalsciences-0.2.0.gem
+	&& logstash-plugin install logstash-input-signalsciences-$(VERSION).gem
 
 run:
 	logstash -f logstash-input-signalsciences.conf
@@ -10,6 +12,9 @@ install:
 
 remove:
 	logstash-plugin remove logstash-input-signalsciences
+
+publish:
+	gem push logstash-input-signalsciences-$(VERSION).gem
 
 clean:
 	rm logstash-input-signalsciences-*.gem
