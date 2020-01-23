@@ -29,7 +29,7 @@ you can also refer to Elasticsearch's getting started page: https://www.elastic.
 
 1. The first requirement is Java 8, run:
 
-```
+```shell
 brew update
 brew tap caskroom/versions
 brew cask install java8
@@ -39,7 +39,7 @@ Reference https://stackoverflow.com/questions/24342886/how-to-install-java-8-on-
 
 2. Next install Elasticsearch, Logstash, and Kibana, run:
 
-```
+```shell
 brew install elasticsearch
 brew install logstash
 brew install kibana
@@ -47,7 +47,7 @@ brew install kibana
 
 With brew you can start/stop these services by running:
 
-```
+```shell
 brew services start elasticsearch
 brew services start logstash
 brew services start kibana
