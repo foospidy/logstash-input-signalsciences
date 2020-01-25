@@ -1,5 +1,7 @@
 # Logstash Input Plugin for Signal Sciences
 
+[![Gem Version](https://badge.fury.io/rb/logstash-input-signalsciences.svg)](https://rubygems.org/gems/logstash-input-signalsciences)
+
 For more detail on using the Signal Sciences logstash plugin, see [instructions](INSTRUCTIONS.md).
 
 This is a plugin for [Logstash](https://github.com/elastic/logstash).

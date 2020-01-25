@@ -1,3 +1,5 @@
+# CHANGELOG
+
 ## 0.3.0
 
 - Added signal sciences user agent string
