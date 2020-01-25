@@ -1,3 +1,7 @@
+## 0.3.0
+
+- Added signal sciences user agent string
+
 ## 0.2.0
 
 - Changed time to UTC
