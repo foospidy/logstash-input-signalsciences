@@ -5,6 +5,7 @@ require "stud/interval"
 require "socket" # for Socket.gethostname
 require "json"
 require "date"
+require "rubygems"
 
 # Fetch Signal Sciences request data.
 #
@@ -55,12 +56,17 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     # set interval to value of from @from minus five minutes
     @interval = @from
 
+    # get version for UA string
+    spec = Gem::Specification::load("logstash-input-signalsciences.gemspec")
+    @version = spec.version
+
     @logger.info("Fetching Signal Sciences request data every #{@interval / 60} minutes.")
   end # def register
 
   def run(queue)
     # we can abort the loop if stop? becomes true
     while !stop?
+      @login['User-Agent'] = "logstash-signalsciences/#{@version}"
       @login.body = URI.encode_www_form({"email" => @email, "password" => @password})
 
       if fetch(queue)
@@ -118,6 +124,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       # Loop through results until next_uri is empty.
       while !next_uri.empty?
         get["Authorization"] = "Bearer #{token}"
+        get['User-Agent'] = "logstash-signalsciences/#{@version}"
 
         begin
           response = @http.request(get)
