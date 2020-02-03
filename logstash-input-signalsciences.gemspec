@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'logstash-input-signalsciences'
-  s.version       = '0.3.0'
+  s.version       = '0.3.1'
   s.licenses      = ['Apache-2.0']
   s.summary       = 'Logstash input plugin for Signal Sciences.'
   s.description   = 'Logstash input plugin for the Signal Sciences request feed endpoint https://docs.signalsciences.net/api/#get-request-feed'

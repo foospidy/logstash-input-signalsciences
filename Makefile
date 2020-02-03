@@ -5,7 +5,7 @@ build:
 	&& logstash-plugin install logstash-input-signalsciences-$(VERSION).gem
 
 run:
-	logstash -f logstash-input-signalsciences.conf
+	logstash -f logstash-input-signalsciences-test.conf
 
 install:
 	logstash-plugin install logstash-input-signalsciences

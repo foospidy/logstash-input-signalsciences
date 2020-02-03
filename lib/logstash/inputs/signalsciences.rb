@@ -5,7 +5,6 @@ require "stud/interval"
 require "socket" # for Socket.gethostname
 require "json"
 require "date"
-require "rubygems"
 
 # Fetch Signal Sciences request data.
 #
@@ -56,9 +55,8 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     # set interval to value of from @from minus five minutes
     @interval = @from
 
-    # get version for UA string
-    spec = Gem::Specification::load("logstash-input-signalsciences.gemspec")
-    @version = spec.version
+    # set version for UA string
+    @version = "0.3.1"
 
     @logger.info("Fetching Signal Sciences request data every #{@interval / 60} minutes.")
   end # def register
