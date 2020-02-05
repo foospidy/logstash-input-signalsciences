@@ -19,7 +19,9 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   # Signal Sciences API account username.
   config :email, :validate => :string, :default => "nobody@signalsciences.com"
   # Signal Sciences API password.
-  config :password, :validate => :string, :default => "nobody"
+  config :password, :validate => :string, :default => ""
+  # Signal Sciences API access token.
+  config :token, :validate => :string, :default => "set_me"
   # Corp and site to pull data from.
   config :corp, :validate => :string, :default => "not_provided"
   config :site, :validate => :string, :default => "not_provided"
@@ -37,9 +39,15 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     @http = Net::HTTP.new('dashboard.signalsciences.net', 443)
     @http.set_debug_output($stdout) if @debug
     @login = Net::HTTP::Post.new("/api/v0/auth")
+    @auth_mode = "password"
     @get = Net::HTTP::Get.new("/api/v0/corps/#{@corp}/sites/#{@site}/feed/requests")
     @http.use_ssl = true
 
+    # determine authentication mode
+    if @token != ""
+      @auth_mode = "token"
+    end
+  
     # check if from value is less than 1 min
     if @from < 60
       @logger.warn("from value is less than 1 min, increasing from value to 1 minute.")
@@ -64,8 +72,10 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   def run(queue)
     # we can abort the loop if stop? becomes true
     while !stop?
-      @login['User-Agent'] = "logstash-signalsciences/#{@version}"
-      @login.body = URI.encode_www_form({"email" => @email, "password" => @password})
+      if @auth_mode == "password"
+        @login['User-Agent'] = "logstash-signalsciences/#{@version}"
+        @login.body = URI.encode_www_form({"email" => @email, "password" => @password})
+      end
 
       if fetch(queue)
         @logger.info("Requests feed retreived successfully.")
@@ -84,112 +94,119 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   end # def run
 
   def fetch(queue)
-    begin
-      response = @http.request(@login)
-      @logger.warn("login response: #{response.code}")
-    rescue
-      @logger.warn("Could not reach API endpoint to login!")
-      return false
-    end
-
-    json = JSON.parse(response.body)
-
-    if json.has_key? "message"
-      # failed to login
-      @logger.warn("login: #{json['message']}")
-      return false
-
-    else
-      token = json['token']
-      # Both the from and until parameters must fall on full minute boundaries,
-      # see https://docs.signalsciences.net/faq/extract-your-data/.
-      t = Time.now.utc.strftime("%Y-%m-%d %H:%M:0")
-      dt = DateTime.parse(t)
-      timestamp_until = dt.to_time.to_i - 300 # now - 5 minutes
-      timestamp_from = (timestamp_until - @from) # @until - @from
-
-      if @debug
-        hfrom = Time.at(timestamp_from).to_datetime
-        huntil = Time.at(timestamp_until).to_datetime
-        @logger.info("From #{hfrom} Until #{huntil}")
+    if @auth_mode == "password"
+      begin
+        response = @http.request(@login)
+        @logger.warn("login response: #{response.code}")
+      rescue
+        @logger.warn("Could not reach API endpoint to login!")
+        return false
       end
 
-      # Set up iniital get request and initial next_uri
-      @logger.info("Requesting data: /api/v0/corps/#{@corp}/sites/#{@site}/feed/requests?from=#{timestamp_from}&until=#{timestamp_until}")
-      get = Net::HTTP::Get.new("/api/v0/corps/#{@corp}/sites/#{@site}/feed/requests?from=#{timestamp_from}&until=#{timestamp_until}")
-      next_uri = "not empty on first pass"
+      json = JSON.parse(response.body)
 
-      # Loop through results until next_uri is empty.
-      while !next_uri.empty?
-        get["Authorization"] = "Bearer #{token}"
-        get['User-Agent'] = "logstash-signalsciences/#{@version}"
+      if json.has_key? "message"
+        # failed to login
+        @logger.warn("login: #{json['message']}")
+        return false
+      end
 
+      bearer_token = json['token']
+    end
+
+    
+    # Both the from and until parameters must fall on full minute boundaries,
+    # see https://docs.signalsciences.net/faq/extract-your-data/.
+    t = Time.now.utc.strftime("%Y-%m-%d %H:%M:0")
+    dt = DateTime.parse(t)
+    timestamp_until = dt.to_time.to_i - 300 # now - 5 minutes
+    timestamp_from = (timestamp_until - @from) # @until - @from
+
+    if @debug
+      hfrom = Time.at(timestamp_from).to_datetime
+      huntil = Time.at(timestamp_until).to_datetime
+      @logger.info("From #{hfrom} Until #{huntil}")
+    end
+
+    # Set up iniital get request and initial next_uri
+    @logger.info("Requesting data: /api/v0/corps/#{@corp}/sites/#{@site}/feed/requests?from=#{timestamp_from}&until=#{timestamp_until}")
+    get = Net::HTTP::Get.new("/api/v0/corps/#{@corp}/sites/#{@site}/feed/requests?from=#{timestamp_from}&until=#{timestamp_until}")
+    next_uri = "not empty on first pass"
+
+    # Loop through results until next_uri is empty.
+    while !next_uri.empty?
+      if @auth_mode == "password"
+        get["Authorization"] = "Bearer #{bearer_token}"
+      else
+        get["x-api-user"] = @email
+        get["x-api-token"] = @token
+      end
+      get['User-Agent'] = "logstash-signalsciences/#{@version}"
+
+      begin
+        response = @http.request(get)
+      rescue
+        @logger.warn("Could not reach API endpoint to retreive reqeusts feed!")
+        return false
+      end
+      json = JSON.parse(response.body)
+
+      #check for message, error, e.g. missing query string parameter
+      if json.has_key? "message"
+        # some error occured, report it.
+        @logger.warn("Error accessing API (auth mode: #{@auth_mode}), status code: #{response.code} with message: #{json['message']}")
+        return false
+      end
+
+      # log json payloads
+      json['data'].each do |payload|
+
+        # explode headersIn out to headerIn entries
+        temp = {}
         begin
-          response = @http.request(get)
-        rescue
-          @logger.warn("Could not reach API endpoint to retreive reqeusts feed!")
-          return false
-        end
-        json = JSON.parse(response.body)
-
-        #check for message, error, e.g. missing query string parameter
-        if json.has_key? "message"
-          # some error occured, report it.
-          @logger.warn("Error accessing API (#{token}), status code: #{response.code} with message: #{json['message']}")
-          return false
-
-        else
-          # log json payloads
-          json['data'].each do |payload|
-
-            # explode headersIn out to headerIn entries
-            temp = {}
-            begin
-              payload['headersIn'].each { |k,v| temp[k] = v }
-              payload["headerIn"] = temp
-            rescue NoMethodError
-              if @debug
-                @logger.debug("payload['headersIn'] is empty for id #{payload['id']}, skipping append.")
-              end
-            end
-
-            # explode headersOut out to headerOut entries
-            temp = {}
-            begin
-              payload['headersOut'].each { |k,v| temp[k] = v }
-              payload["headerOut"] = temp
-            rescue NoMethodError
-              if @debug
-                @logger.info("payload['headersOut'] is empty for id #{payload['id']}, skipping append.")
-              end
-            end
-
-            # explode tags out to tag entries
-            temp = {}
-            payload['tags'].each do |x|
-              temp[x['type']] = x
-            end
-            payload['tag'] = temp
-
-            # add the event
-            
-            event = LogStash::Event.new("message" => payload, "host" => @host)
-
-            decorate(event)
-            queue << event
-          end
-
-          # get the next uri value
-          next_uri = json['next']['uri']
+          payload['headersIn'].each { |k,v| temp[k] = v }
+          payload["headerIn"] = temp
+        rescue NoMethodError
           if @debug
-            logger.info("Next URI: #{next_uri}")
-          end
-
-          # continue retreiving next_uri if it exists
-          if !next_uri.empty?
-            get = Net::HTTP::Get.new(next_uri)
+            @logger.debug("payload['headersIn'] is empty for id #{payload['id']}, skipping append.")
           end
         end
+
+        # explode headersOut out to headerOut entries
+        temp = {}
+        begin
+          payload['headersOut'].each { |k,v| temp[k] = v }
+          payload["headerOut"] = temp
+        rescue NoMethodError
+          if @debug
+            @logger.info("payload['headersOut'] is empty for id #{payload['id']}, skipping append.")
+          end
+        end
+
+        # explode tags out to tag entries
+        temp = {}
+        payload['tags'].each do |x|
+          temp[x['type']] = x
+        end
+        payload['tag'] = temp
+
+        # add the event
+        
+        event = LogStash::Event.new("message" => payload, "host" => @host)
+
+        decorate(event)
+        queue << event
+      end
+
+      # get the next uri value
+      next_uri = json['next']['uri']
+      if @debug
+        logger.info("Next URI: #{next_uri}")
+      end
+
+      # continue retreiving next_uri if it exists
+      if !next_uri.empty?
+        get = Net::HTTP::Get.new(next_uri)
       end
     end
 
