@@ -21,7 +21,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   # Signal Sciences API password.
   config :password, :validate => :string, :default => ""
   # Signal Sciences API access token.
-  config :token, :validate => :string, :default => "set_me"
+  config :token, :validate => :string, :default => ""
   # Corp and site to pull data from.
   config :corp, :validate => :string, :default => "not_provided"
   config :site, :validate => :string, :default => "not_provided"
