@@ -64,7 +64,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     @interval = @from
 
     # set version for UA string
-    @version = "0.3.1"
+    @version = "1.0.0"
 
     @logger.info("Fetching Signal Sciences request data every #{@interval / 60} minutes.")
   end # def register
