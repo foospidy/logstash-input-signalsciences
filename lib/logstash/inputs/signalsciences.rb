@@ -149,6 +149,29 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
         @logger.warn("Could not reach API endpoint to retreive reqeusts feed!")
         return false
       end
+
+      if response.code == "524"
+        @logger.warn("524 - Origin Timeout!")
+        @logger.info("Another attempt will be made later.")
+        return false
+      end
+
+      if response.code == "429"
+        @logger.warn("429 - Too Many Requests!")
+        @logger.info("API request throttling as been triggered, another attempt will be made later. Contact support if this error continues.")
+        return false
+      end
+
+      if response.code == "404"
+        @logger.warn("404 - Not Found!")
+        return false
+      end
+
+      if response.code == "401"
+        @logger.warn("401 - Unauthorized!")
+        return false
+      end
+
       json = JSON.parse(response.body)
 
       #check for message, error, e.g. missing query string parameter
