@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    logstash-input-signalsciences (0.1.0)
+    logstash-input-signalsciences (1.1.0)
       logstash-core-plugin-api (~> 2.0)
       stud (>= 0.0.22)
 
