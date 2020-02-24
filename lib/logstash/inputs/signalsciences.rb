@@ -220,25 +220,6 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     end
   end
 
-  # private
-  # def from_until!
-  #   @logger.info("Fetching Signal Sciences request data every #{@interval / 60} minutes.")
-
-  #   # Both the from and until parameters must fall on full minute boundaries,
-  #   # see https://docs.signalsciences.net/faq/extract-your-data/.
-  #   # t = Time.now.utc.strftime("%Y-%m-%d %H:%M:0")
-  #   # dt = DateTime.parse(t)
-  #   # @ts_until = dt.to_time.to_i - 300 # now - 5 minutes
-  #   ts_from = (@ts_until - @from) # @until - @from
-
-  #   if @debug
-  #     hfrom = Time.at(timestamp_from).to_datetime
-  #     huntil = Time.at(timestamp_until).to_datetime
-  #     @logger.debug("Signal Sciences: From #{hfrom} Until #{huntil}")
-  #   end
-  #   return [ts_until, ts_from]
-  # end
-
   private
   def setup_auth_requests!
     login = Net::HTTP::Post.new("/api/v0/auth")
@@ -324,7 +305,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     end
     payload['tag'] = temp
 
-    event = LogStash::Event.new("message" => payload, "host" => @host)
+    event = LogStash::Event.new("message" => payload, "host" => @host, "sigsci-API" => name)
     decorate(event)
     queue << event
   end
