@@ -55,7 +55,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     @http.set_debug_output($stdout) if @debug
     @apipath = "/api/v0/corps/#{@corp}/sites/#{@site}/"
     # set version for UA string
-    @version = "1.1.0"
+    @version = "1.2.0"
     # set interval to value of from @from minus five minutes
     @interval = @from
     t = Time.now.utc.strftime("%Y-%m-%d %H:%M:0")
@@ -292,7 +292,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
         payload["headerOut"] = temp
       rescue NoMethodError
         if @debug
-          @logger.warn("payload['headersOut'] is empty for id #{payload['id']}, skipping append.")
+          @logger.debug("payload['headersOut'] is empty for id #{payload['id']}, skipping append.")
         end
       end
     end
@@ -302,10 +302,13 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       payload['tags'].each do |x|
         temp[x['type']] = x
       end
+      payload.delete('tags')
     end
     payload['tag'] = temp
+    payload['logstash_host.name'] = @host
 
-    event = LogStash::Event.new("message" => payload, "host" => @host, "sigsci-API" => name)
+    event = LogStash::Event.new(payload)
+    event.tag(name)
     decorate(event)
     queue << event
   end
