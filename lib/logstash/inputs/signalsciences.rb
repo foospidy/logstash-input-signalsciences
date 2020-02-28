@@ -276,7 +276,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       @logger.warn("401 - Unauthorized!")
       return false
     end
-    @logger.warn("Non-200 return enable debug to troubleshoot")
+    @logger.warn("Non-200 return enable debug to troubleshoot: #{res_code}")
     return false
   end
 
