@@ -53,7 +53,6 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     @http = Net::HTTP.new('dashboard.signalsciences.net', 443)
     @http.use_ssl = true
     @http.set_debug_output($stdout) if @debug
-    #@apiendpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/"
     # set version for UA string
     @version = "1.3.0"
     # set interval to value of from @from minus five minutes
@@ -317,7 +316,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     payload['tag'] = temp
     payload['logstash_host.name'] = @host
 
-    event = LogStash::Event.new(payload)
+    event = LogStash::Event.new(payload, "message" => payload)
     event.tag(name)
     decorate(event)
     queue << event
