@@ -32,30 +32,30 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   config :debug, :validate => :boolean, :default => false
   # The default, `600`, means fetch data every 10 minutes.
   config :interval, :validate => :number, :default => 600
-  # A hash of siteinfo paths in this format : "name" => "path".
+  # A hash of siteinfo endpoints in this format : "name" => "endpoint".
   # The name and the siteinfo will be passed in the outputed event
   # API to be used. The default is feed/requests to list the requests over a given period of time.  One could utilize "agents" to get the status of all your agents.
-  config :paths, :validate => :hash, :default =>  {"feed_requests"=>{"path"=>"feed/requests", "from_until"=>"true"}}
+  config :endpoints, :validate => :hash, :default =>  {"feed_requests"=>{"endpoint"=>"feed/requests", "from_until"=>"true"}}
 
   # Define the target field for placing the received data. If this setting is omitted, the data will be stored at the root (top level) of the event.
   config :target, :validate => :string
 
-  # get_paths
-  config :get_paths, :validate => :array, :default => '@get_paths'
+  # get_endpoints
+  config :get_endpoints, :validate => :array, :default => '@get_endpoints'
 
   public
   def register
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
     
-    @logger.info("Registering signalsciences Input", :password => @password, :email => @email, :corp => @corp, :site => @site, :from => @from, interval => @interval, paths => @paths )
+    @logger.info("Registering signalsciences Input", :password => @password, :email => @email, :corp => @corp, :site => @site, :from => @from, interval => @interval, endpoints => @endpoints )
     # check if from value is less than 1 min
 
     @http = Net::HTTP.new('dashboard.signalsciences.net', 443)
     @http.use_ssl = true
     @http.set_debug_output($stdout) if @debug
-    @apipath = "/api/v0/corps/#{@corp}/sites/#{@site}/"
+    #@apiendpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/"
     # set version for UA string
-    @version = "1.2.0"
+    @version = "1.3.0"
     # set interval to value of from @from minus five minutes
     @interval = @from
     t = Time.now.utc.strftime("%Y-%m-%d %H:%M:0")
@@ -89,11 +89,11 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   end
 
   def fetch(queue)
-    setup_paths!
-    @get_paths.each do |name, api_path|
+    setup_endpoints!
+    @get_endpoints.each do |name, api_endpoint|
       @logger.debug("Signal Scienses name: #{name}")
-      @logger.debug("Signal Scienses path: #{api_path}")
-      request = get_request(queue, api_path, name)
+      @logger.debug("Signal Scienses endpoint: #{api_endpoint}")
+      request = get_request(queue, api_endpoint, name)
       response = @http.request(request)
       if response.code != "200"
         return check_response_code!(response.code)
@@ -104,8 +104,8 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   end
 
   private
-  def setup_paths!
-    @logger.info("Registering signalsciences Input", interval => @interval, paths => @paths )
+  def setup_endpoints!
+    @logger.info("Registering signalsciences Input", interval => @interval, endpoints => @endpoints )
     # check if from value is less than 1 min
     if @from < 60
       @logger.warn("from value is less than 1 min, increasing from value to 1 minute.")
@@ -116,50 +116,60 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       @logger.warn("from value is greater than 24 hours, reducing from value to 24 hours.")
       @from = 86400
     end
-    @get_paths = Hash[@paths.map {|name, path| [name, process_path!(path)] }]
+    @get_endpoints = Hash[@endpoints.map {|name, endpoint| [name, process_endpoint!(endpoint)] }]
   end
 
   private
-  def process_path!(path_or_fu)
-    if path_or_fu.is_a?(String)
-      raise LogStash::ConfigurationError, "Invalid paths spec: '#{path_or_fu}', expected a Hash!"
-    elsif path_or_fu.is_a?(Hash)
-      path_spec = Hash[path_or_fu.clone.map {|k,v| [k.to_sym, v] }]
-      @logger.debug("Signal Sciences: path_spec: #{path_spec}")
-      from_ut = path_spec.delete(:from_until)
+  def process_endpoint!(endpoint_or_fu)
+    site=nil
+    if endpoint_or_fu.is_a?(String)
+      raise LogStash::ConfigurationError, "Invalid endpoints spec: '#{endpoint_or_fu}', expected a Hash!"
+    elsif endpoint_or_fu.is_a?(Hash)
+      endpoint_spec = Hash[endpoint_or_fu.clone.map {|k,v| [k.to_sym, v] }]
+      @logger.debug("Signal Sciences: endpoint_spec: #{endpoint_spec}")
+      from_ut = endpoint_spec.delete(:from_until)
       @logger.debug("Signal Sciences: from_ut: #{from_ut}")
-      path = path_spec.delete(:path)
-      @logger.debug("Signal Sciences: path: #{path}")
+      site = endpoint_spec.delete(:site)
+      @logger.debug("Signal Sciences: site: #{site}")
+      endpoint = endpoint_spec.delete(:endpoint)
+      @logger.debug("Signal Sciences: endpoint: #{endpoint}")
     else
-      raise LogStash::ConfigurationError, "Invalid paths spec: '#{path_or_fu}', expected a Hash!"
+      raise LogStash::ConfigurationError, "Invalid endpoints spec: '#{endpoint_or_fu}', expected a Hash!"
     end
    
     if from_ut == "true"
-      #timestamp_until, timestamp_from = from_until!
-      api_path = "#{@apipath}#{path}?from=#{@timestamp_from}&until=#{@timestamp_until}"
+      if site.nil?
+        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/#{endpoint}?from=#{@timestamp_from}&until=#{@timestamp_until}"
+      else
+        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{site}/#{endpoint}?from=#{@timestamp_from}&until=#{@timestamp_until}"
+      end
     else
-      api_path = "#{@apipath}#{path}"
+      if site.nil?
+        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/#{endpoint}"
+      else
+        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{site}/#{endpoint}"
+      end
     end
-    @logger.debug("Signal Sciences: path: #{api_path}")
-    return api_path
+    @logger.debug("Signal Sciences: endpoint: #{api_endpoint}")
+    return api_endpoint
   end
 
   private
-  def get_request(queue, api_path, name)
+  def get_request(queue, api_endpoint, name)
     if @token.to_s.empty?
       bearer_token = setup_auth_requests!
-      get = Net::HTTP::Get.new("#{api_path}")
+      get = Net::HTTP::Get.new("#{api_endpoint}")
       get["Authorization"] = "Bearer #{bearer_token}"
       get['User-Agent'] = "logstash-signalsciences/#{@version}"
       # Set up iniital get request and initial next_uri
-      @logger.debug("Requesting data: #{api_path}")
+      @logger.debug("Requesting data: #{api_endpoint}")
     else
-      get = Net::HTTP::Get.new("#{api_path}")
+      get = Net::HTTP::Get.new("#{api_endpoint}")
       get["x-api-user"] = @email
       get["x-api-token"] = @token
       get['User-Agent'] = "logstash-signalsciences/#{@version}"
       # Set up iniital get request and initial next_uri
-      @logger.debug("Requesting x-api data: #{api_path}")
+      @logger.debug("Requesting x-api data: #{api_endpoint}")
     end
     return get
   end
