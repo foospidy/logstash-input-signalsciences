@@ -315,8 +315,6 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     end
     payload['tag'] = temp
     payload['logstash_host.name'] = @host
-    temp = payload
-    payload['message'] = temp
 
     event = LogStash::Event.new(payload)
     event.tag(name)
