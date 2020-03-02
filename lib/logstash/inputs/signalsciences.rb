@@ -316,7 +316,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     payload['tag'] = temp
     payload['logstash_host.name'] = @host
 
-    event = LogStash::Event.new(payload)
+    event = LogStash::Event.new('message' => payload.to_json, 'host' => @host)
     event.tag(name)
     decorate(event)
     queue << event
