@@ -95,7 +95,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       request = get_request(queue, api_endpoint, name)
       response = @http.request(request)
       if response.code != "200"
-        return check_response_code!(response.code)
+        return check_response_code!(response.code, api_endpoint)
       else
         handle_success!(queue, name, response)
       end
@@ -214,7 +214,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
             return false
           end
           if response_uri.code != "200"
-            return check_response_code!(response_uri.code)
+            return check_response_code!(response_uri.code, next_uri)
           else
             json = JSON.parse(response_uri.body)
           end
@@ -242,7 +242,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       return false
     end
     if loginresponse.code != "200"
-      return check_response_code!(loginresponse.code)
+      return check_response_code!(loginresponse.code, "Auth")
     end
     json = JSON.parse(loginresponse.body)
     if json.has_key? "message"
@@ -256,26 +256,26 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
   end
 
   private
-  def check_response_code!(res_code)
+  def check_response_code!(res_code, message)
     if res_code == "524"
       @logger.warn("524 - Origin Timeout!")
-      @logger.info("Another attempt will be made later.")
+      @logger.info("Another attempt will be made later. #{message}")
       return false
     end
     if res_code == "429"
       @logger.warn("429 - Too Many Requests!")
-      @logger.info("API request throttling as been triggered, another attempt will be made later. Contact support if this error continues.")
+      @logger.info("API request throttling as been triggered, another attempt will be made later. Contact support if this error continues. #{message}")
       return false
     end
     if res_code == "404"
-      @logger.warn("404 - Not Found!")
+      @logger.warn("404 - Not Found! #{message}")
       return false
     end
     if res_code == "401"
-      @logger.warn("401 - Unauthorized!")
+      @logger.warn("401 - Unauthorized! #{message}")
       return false
     end
-    @logger.warn("Non-200 return enable debug to troubleshoot: #{res_code}")
+    @logger.warn("Non-200 return enable debug to troubleshoot: #{res_code} #{message}")
     return false
   end
 
