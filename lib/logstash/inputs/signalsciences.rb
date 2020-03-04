@@ -128,8 +128,6 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
       @logger.debug("Signal Sciences: endpoint_spec: #{endpoint_spec}")
       from_ut = endpoint_spec.delete(:from_until)
       @logger.debug("Signal Sciences: from_ut: #{from_ut}")
-      site = endpoint_spec.delete(:site)
-      @logger.debug("Signal Sciences: site: #{site}")
       endpoint = endpoint_spec.delete(:endpoint)
       @logger.debug("Signal Sciences: endpoint: #{endpoint}")
     else
@@ -137,17 +135,9 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
     end
    
     if from_ut == "true"
-      if site.nil?
-        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/#{endpoint}?from=#{@timestamp_from}&until=#{@timestamp_until}"
-      else
-        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{site}/#{endpoint}?from=#{@timestamp_from}&until=#{@timestamp_until}"
-      end
+      api_endpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/#{endpoint}?from=#{@timestamp_from}&until=#{@timestamp_until}"
     else
-      if site.nil?
-        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/#{endpoint}"
-      else
-        api_endpoint = "/api/v0/corps/#{@corp}/sites/#{site}/#{endpoint}"
-      end
+      api_endpoint = "/api/v0/corps/#{@corp}/sites/#{@site}/#{endpoint}"
     end
     @logger.debug("Signal Sciences: endpoint: #{api_endpoint}")
     return api_endpoint
@@ -318,6 +308,7 @@ class LogStash::Inputs::Signalsciences < LogStash::Inputs::Base
 
     event = LogStash::Event.new('message' => payload.to_json, 'host' => @host)
     event.tag(name)
+    event.tag(@site)
     decorate(event)
     queue << event
   end
